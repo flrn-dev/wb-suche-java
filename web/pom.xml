@@ -72,7 +72,7 @@
         <executions>
           <execution>
             <id>unpack-core-json</id>
-            <phase>install</phase>
+            <phase>package</phase>
             <goals>
               <goal>unpack</goal>
             </goals>
