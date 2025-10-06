@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wb-Suche</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      header,
+      footer {
+        text-align: center;
+        padding: 12px;
+      }
+      main {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px;
+      }
+      #app {
+        background: white;
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin: 8px 0 4px;
+      }
+      input[type="text"] {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      button {
+        padding: 8px 16px;
+        background: #3498db;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      button:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      tr:nth-child(even) {
+        background: #f9f9f9;
+      }
+      td.other {
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      a {
+        color: #3498db;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        visibility: hidden;
+      }
+      #loader.active {
+        visibility: visible;
+      }
+      .spinner {
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header><h1>Wörterbuch-Suche</h1></header>
+
+    <main>
+      <div id="app">
+        <label for="template">Suchmuster</label>
+        <input type="text" id="template" placeholder="z. B. w_rt" />
+
+        <label for="letters">Buchstaben</label>
+        <input type="text" id="letters" placeholder="z. B. ha?e" />
+
+        <button id="search-button">Suchen</button>
+
+        <table id="results-output">
+          <thead>
+            <tr>
+              <th>Lemma</th>
+              <th>Wortart</th>
+              <th>Weitere Lemmata</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </main>
+
+    <footer><small>© 2024 Wb-Suche</small></footer>
+
+    <div id="loader"><div class="spinner"></div></div>
+
+    <script src="classes.js"></script>
+    <script>
+      const loader = document.getElementById("loader");
+      const button = document.getElementById("search-button");
+      const tbody = document.querySelector("#results-output tbody");
+
+      function showLoader() { loader.classList.add("active"); }
+      function hideLoader() { loader.classList.remove("active"); }
+
+      (async function initDict() {
+        try {
+          showLoader();
+          const res = await fetch("dict.json");
+          const json = await res.text();
+          init(json);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          hideLoader();
+        }
+      })();
+
+      button.addEventListener("click", () => {
+        const template = document.getElementById("template").value;
+        const letters = document.getElementById("letters").value;
+
+        tbody.innerHTML = "";
+        showLoader();
+
+        setTimeout(() => {
+          let page = 0n;
+          const pageSize = 50n;
+
+          while (true) {
+            let results;
+            
+            try {
+              results = JSON.parse(search(template, letters, page, pageSize, "alphabetical_asc"));
+            } catch (err) {
+              console.error(err);
+              break;
+            }
+
+            if (!results || results.length === 0) break;
+
+            results.forEach(r => {
+              const tr = document.createElement("tr");
+
+              const tdLemma = document.createElement("td");
+              const link = document.createElement("a");
+              link.href = r.url || "#";
+              link.target = "_blank";
+              link.textContent = r.lemma || "-";
+              tdLemma.appendChild(link);
+
+              const tdPos = document.createElement("td");
+              tdPos.textContent = r.pos || "-";
+
+              const tdOther = document.createElement("td");
+              tdOther.classList.add("other");
+              tdOther.textContent = (r.other_lemmata || []).join(", ");
+
+              tr.appendChild(tdLemma);
+              tr.appendChild(tdPos);
+              tr.appendChild(tdOther);
+              tbody.appendChild(tr);
+            });
+
+            page++;
+          }
+          hideLoader();
+        }, 50);
+      });
+    </script>
+  </body>
+</html>

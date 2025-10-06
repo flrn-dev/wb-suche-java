@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: wb-suche-test
+
+app:
+  api:
+    client: test-client
+    key: 123456
