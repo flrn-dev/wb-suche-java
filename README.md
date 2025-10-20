@@ -1,4 +1,4 @@
-# Wb-Suche
+# Wb-Suche-Java
 
 ## Maven
 
